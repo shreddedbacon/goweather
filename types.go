@@ -152,3 +152,26 @@ type WH1080Data struct {
 	AlarmEnable   AlarmEnable   `json:"alarm_enable"`
 	UnitSetting   UnitSetting   `json:"unit_setting"`
 }
+
+type CurrentData struct {
+	IndoorHumidity  int     `json:"indoor_humidity"`
+	IndoorTemp      float64 `json:"indoor_temp"`
+	StatusRCO       bool    `json:"status_RCO"`
+	WindDir         float64 `json:"wind_dir"`
+	Cursor          int     `json:"cursor"`
+	StatusLOC       bool    `json:"status_LOC"`
+	AveWindSpeed    float64 `json:"ave_wind_speed"`
+	OutdoorHumidity int     `json:"outdoor_humidity"`
+	GustWindSpeed   float64 `json:"gust_wind_speed"`
+	Delay           int     `json:"delay"`
+	AbsPressure     float64 `json:"abs_pressure"`
+	Time            float64 `json:"time"`
+	RainTotal       float64 `json:"rain_total"`
+	OutdoorTemp     float64 `json:"outdoor_temp"`
+	TimeStr         string  `json:"time_str"`
+}
+
+type FullData struct {
+	CurrentData CurrentData `json:"current_data"`
+	WH1080Data  WH1080Data  `json:"main_data"`
+}
