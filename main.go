@@ -13,57 +13,47 @@ import (
 )
 
 func main() {
-
-	device := hid.Enumerate(6465, 32801)
-	dev, err := device[0].Open()
+	usbDevice := hid.Enumerate(0x1941, 0x8021)
+	wh1080, err := usbDevice[0].Open()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	s := "a1"
-	s2 := "20a1000020"
-	data, err := hex.DecodeString(s)
-	if err != nil {
-		panic(err)
-	}
-	data2, err := hex.DecodeString(s2)
-	if err != nil {
-		panic(err)
-	}
-	bfr := make([]byte, 0)
-	bfr1 := Read(dev, 0x00, 0x100, data, data2)
-	//bfr2 := Read(dev, 0x00 ,0x100, data, data2)
-	bfr = append(bfr, bfr1...)
-	//bfr = append(bfr, bfr2...)
-	log.Println(len(bfr))
-	log.Println(bfr)
-	log.Println("-------------")
-	ReturnJson(bfr)
-	//ReturnWSJson(bfr2)
+	fullData := CollectData(wh1080)
+	jsonFullData, _ := json.Marshal(fullData)
+	fmt.Println(string(jsonFullData))
 }
 
-func Read(dev *hid.Device, address int, offset int, data []byte, data2 []byte) []byte {
-	v1 := byte(address / offset)
-	v2 := byte(address % offset)
+func CollectData(wh1080 *hid.Device) *FullData {
+	serialBufferMain := Read(wh1080, 0x00, 0x100)
+	mainData := ReturnMainData(serialBufferMain)
+	serialBufferCurrent := Read(wh1080, mainData.State.CurrentPos, 0x20)
+	currentData := ReturnCurrentData(serialBufferCurrent, mainData.State.CurrentPos)
+
+	fullData := &FullData{
+		CurrentData: *currentData,
+		WH1080Data:  *mainData,
+	}
+	return fullData
+}
+
+func Read(dev *hid.Device, address int, offset int) []byte {
+	data, _ := hex.DecodeString("a1")
+	data2, _ := hex.DecodeString("20a1000020")
+	v1 := byte(address / 0x100)
+	v2 := byte(address % 0x100)
 	bfr := make([]byte, 0)
 	fulldata := make([]byte, 0)
 	fulldata = append(fulldata, data...)
 	fulldata = append(fulldata, v1)
 	fulldata = append(fulldata, v2)
 	fulldata = append(fulldata, data2...)
-	//log.Println(fulldata)
 	chunks := offset / 32
-
-	for i := 0; i <= chunks; i++ {
-		if fulldata[1] > 0 {
-			break
-		}
-		//fmt.Println(fulldata)
+	for i := 0; i < chunks+1; i++ {
 		_, err := dev.Write(fulldata)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		time.Sleep(50 * time.Millisecond)
 		for b := 0; b <= 3; b++ {
 			// we need to loop to get all the bytes from our write/read operation, for some reason we can't get all 32 bytes at once
 			buf := make([]byte, 8)
@@ -74,17 +64,16 @@ func Read(dev *hid.Device, address int, offset int, data []byte, data2 []byte) [
 			bfr = append(bfr, buf...)
 			time.Sleep(50 * time.Millisecond)
 		}
-		//log.Println(bfr)
 		address += 0x20
-		fulldata[1] = byte(address / offset)
-		fulldata[2] = byte(address % offset)
+		fulldata[1] = byte(address / 0x100)
+		fulldata[2] = byte(address % 0x100)
 	}
 	return bfr
 
 }
 
-func ReturnJson(data []byte) {
-	// https://stackoverflow.com/questions/28465098/golang-bitwise-calculation
+// return maindata
+func ReturnMainData(data []byte) *WH1080Data {
 	retData := &WH1080Data{
 		State: State{
 			ReadPeriod:       int(data[16]),
@@ -227,8 +216,28 @@ func ReturnJson(data []byte) {
 			MaxRainTotalDate:       FromBCD(data[251:256]),
 		},
 	}
-	js, _ := json.Marshal(retData)
-	fmt.Println(string(js))
+	return retData
+}
+
+// Return CurrentData
+func ReturnCurrentData(data []byte, cursor int) *CurrentData {
+	retData := &CurrentData{
+		IndoorHumidity:  int(data[1]),
+		IndoorTemp:      BytesToShort(data[3], data[2]) * 0.1,
+		OutdoorHumidity: int(data[4]),
+		OutdoorTemp:     BytesToShort(data[6], data[5]) * 0.1,
+		AbsPressure:     toFixed(float64(uint(data[8])<<8|uint(data[7]))*0.1, 1),
+		AveWindSpeed:    toFixed(float64(uint(data[11]&0x0F)<<8|uint(data[9]))*0.1, 1),
+		GustWindSpeed:   toFixed(float64(uint(data[11]&0xF0)<<8|uint(data[10]))*0.1, 1),
+		WindDir:         toFixed(float64(data[12])*22.5, 1),
+		RainTotal:       toFixed(float64(uint(data[14])<<8|uint(data[13]))*0.3, 1),
+		StatusRCO:       (data[15] & 0x80) != 0,
+		StatusLOC:       (data[15] & 0x40) != 0,
+		Delay:           int(data[0]),
+		Cursor:          cursor,
+		TimeStr:         time.Now().UTC().Format(time.RFC3339),
+	}
+	return retData
 }
 
 // check bit is set / true/false
@@ -275,24 +284,4 @@ func round(num float64) int {
 func toFixed(num float64, precision int) float64 {
 	output := math.Pow(10, float64(precision))
 	return float64(round(num*output)) / output
-}
-
-func ReturnWSJson(data []byte) {
-	retString := `{
-    "delay":` + string(int(data[0])) + `,
-    "indoor_humidity":` + string(int(data[1])) + `
-    }`
-	fmt.Println(retString)
-	// return {'delay': byte_str[0],
-	//         'indoor_humidity': byte_str[1],
-	//         'indoor_temp': to_signed_short(byte_str[3], byte_str[2]) * 0.1,
-	//         'outdoor_humidity': byte_str[4],
-	//         'outdoor_temp': to_signed_short(byte_str[6], byte_str[5]) * 0.1,
-	//         'abs_pressure': (byte_str[8] << 8 | byte_str[7]) * 0.1,
-	//         'ave_wind_speed': (((byte_str[11] & 0x0F) << 8) | byte_str[9]) * 0.1,
-	//         'gust_wind_speed': (((byte_str[11] & 0xF0) << 8) | byte_str[10]) * 0.1,
-	//         'wind_dir': byte_str[12] * 22.5,
-	//         'rain_total': (byte_str[14] << 8 | byte_str[13]) * 0.3,
-	//         'status_LOC': (byte_str[15] & 0x40) != 0,
-	//         'status_RCO': (byte_str[15] & 0x80) != 0}
 }
