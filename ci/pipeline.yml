@@ -172,11 +172,20 @@ resources:
       secret_access_key: ((aws.secret_key))
       endpoint:          ((aws.endpoint))
 
-  - name: goweather-bucket
+  - name: goweather-bucket-x86
     type: s3
     source:
       bucket:            goweather
       access_key_id:     ((aws.access_key))
       secret_access_key: ((aws.secret_key))
-      regexp:            "goweather-linux-(.*).tar.gz"
+      regexp:            "goweather-linux-x86-(.*).tar.gz"
+      endpoint:          ((aws.endpoint))
+
+  - name: goweather-bucket-arm
+    type: s3
+    source:
+      bucket:            goweather
+      access_key_id:     ((aws.access_key))
+      secret_access_key: ((aws.secret_key))
+      regexp:            "goweather-linux-arm-(.*).tar.gz"
       endpoint:          ((aws.endpoint))
