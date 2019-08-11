@@ -12,7 +12,7 @@ echo ">> Install git"
 
 #apk add --no-cache gcc-arm-none-eabi
 apt-get update -y
-apt-get install git libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential -y
+apt-get install git gcc-arm-linux-gnueabi libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential -y
 
 # set up directory stuff for golang
 echo ">> Setup Directories"
