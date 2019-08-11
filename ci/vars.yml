@@ -1,0 +1,16 @@
+initial_version: 0.0.1
+
+public: false
+
+github:
+  uri: git@github.com:shreddedbacon/goweather.git
+  branch: master
+  user: shreddedbacon
+  repository: goweather
+  access_token: ((github.access_token))
+  private_key: ((github.private_key))
+
+aws:
+  access_key: ((aws.access_key))
+  secret_key: ((aws.secret_key))
+  endpoint: ((aws.endpoint))
