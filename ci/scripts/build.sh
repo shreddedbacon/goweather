@@ -6,7 +6,8 @@ echo ">> Install git"
 apk add --no-cache git
 apk add --no-cache --virtual .build-deps \
  		bash \
- 		gcc
+ 		gcc \
+    libbsd-dev
 
 # set up directory stuff for golang
 echo ">> Setup Directories"
