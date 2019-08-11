@@ -8,7 +8,8 @@ apk add --no-cache --virtual .build-deps \
  		bash \
  		gcc \
     musl-dev \
-    linux-headers
+    linux-headers \
+    gcc-arm-none-eabi
 
 # set up directory stuff for golang
 echo ">> Setup Directories"

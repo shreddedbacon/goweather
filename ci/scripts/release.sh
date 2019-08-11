@@ -27,7 +27,8 @@ echo "v${VERSION}"                         > gh/tag
 echo "GoWeather v${VERSION}"         > gh/name
 mv goweather-release/ci/release_notes.md          gh/notes.md
 
-cp goweather-bucket/goweather-linux-*.tar.gz gh/artifacts/goweather-linux-${VERSION}.tar.gz
+cp goweather-bucket/goweather-linux-x86-*.tar.gz gh/artifacts/goweather-linux-x86-${VERSION}.tar.gz
+cp goweather-bucket/goweather-linux-arm-*.tar.gz gh/artifacts/goweather-linux-arm-${VERSION}.tar.gz
 
 # GIT!
 git config --global user.name "BaconBot"
