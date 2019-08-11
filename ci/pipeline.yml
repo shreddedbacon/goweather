@@ -11,7 +11,7 @@ groups:
 
 jobs:
   - name: build-release
-    public: true
+    public: ((public))
     serial: true
     plan:
     - do:
@@ -42,7 +42,7 @@ jobs:
         params:
           file:  "built-release/goweather-linux-*.tar.gz"
   - name: bump-rc
-    public: true
+    public: ((public))
     plan:
     - do:
       - aggregate:
@@ -53,21 +53,21 @@ jobs:
         params: {file: version/number}
 
   - name: bump-minor
-    public: true
+    public: ((public))
     plan:
     - do:
       - { get: version, trigger: false, params: {bump: minor} }
       - { put: version,                 params: {file: version/number} }
 
   - name: bump-major
-    public: true
+    public: ((public))
     plan:
     - do:
       - { get: version, trigger: false, params: {bump: major} }
       - { put: version,                 params: {file: version/number} }
 
   - name: promote-release
-    public: true
+    public: ((public))
     serial: true
     plan:
     - do:
