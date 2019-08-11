@@ -47,7 +47,7 @@ jobs:
     - do:
       - aggregate:
           - { get: goweather-release,     trigger: true,  passed: [build-release] }
-          - { get: version, trigger: true, params: {pre: rc} }
+          - { get: version, params: {pre: rc} }
           - { get: goweather-bucket, trigger: true }
       - put: version
         params: {file: version/number}
@@ -160,7 +160,7 @@ resources:
     type: semver
     source:
       driver:            s3
-      bucket:            credhub
+      bucket:            goweather
       key:               version
       initial_version:   ((initial_version))
       access_key_id:     ((aws.access_key))
