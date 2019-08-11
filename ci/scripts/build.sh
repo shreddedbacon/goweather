@@ -18,10 +18,16 @@ cd  /go/src/github.com/shreddedbacon/goweather
 echo ">> Get"
 go get -v .
 cd -
-echo ">> Build"
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o built-release/goweather github.com/shreddedbacon/goweather
+echo ">> Build X86"
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -o built-release-x86/goweather github.com/shreddedbacon/goweather
+echo ">> Build ARM"
+CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=5 go build -a -o built-release-arm/goweather github.com/shreddedbacon/goweather
 
-echo ">> Create artifact"
 VERSION=$(cat ${VERSION_FROM})
-cd built-release
-tar czf goweather-linux-$VERSION.tar.gz goweather
+echo ">> Create X86 artifact"
+cd built-release-x86
+tar czf goweather-linux-x86-$VERSION.tar.gz goweather
+
+echo ">> Create ARM artifact"
+cd ../built-release-arm
+tar czf goweather-linux-arm-$VERSION.tar.gz goweather
