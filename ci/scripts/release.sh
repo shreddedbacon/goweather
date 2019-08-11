@@ -24,7 +24,7 @@ fi
 ###############################################################
 mkdir -p gh/artifacts
 echo "v${VERSION}"                         > gh/tag
-echo "CredHub WebUI v${VERSION}"         > gh/name
+echo "GoWeather v${VERSION}"         > gh/name
 mv goweather-release/ci/release_notes.md          gh/notes.md
 
 cp goweather-bucket/goweather-linux-*.tar.gz gh/artifacts/goweather-linux-${VERSION}.tar.gz
