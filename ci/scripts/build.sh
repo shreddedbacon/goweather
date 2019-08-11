@@ -3,14 +3,15 @@ set -e -u -x
 # Install git for go get
 
 echo ">> Install git"
-apk add --no-cache git
-apk add --no-cache --virtual .build-deps \
- 		bash \
- 		gcc \
-    musl-dev \
-    linux-headers
+# apk add --no-cache git
+# apk add --no-cache --virtual .build-deps \
+#  		bash \
+#  		gcc \
+#     musl-dev \
+#     linux-headers
 
 #apk add --no-cache gcc-arm-none-eabi
+apt-get install git libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential
 
 # set up directory stuff for golang
 echo ">> Setup Directories"
