@@ -4,6 +4,9 @@ set -e -u -x
 
 echo ">> Install git"
 apk add --no-cache git
+apk add --no-cache --virtual .build-deps \
+ 		bash \
+ 		gcc
 
 # set up directory stuff for golang
 echo ">> Setup Directories"
