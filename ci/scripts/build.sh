@@ -23,7 +23,7 @@ cd -
 echo ">> Build X86"
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -o built-release-x86/goweather github.com/shreddedbacon/goweather
 echo ">> Build ARM"
-CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=5 go build -a -o built-release-arm/goweather github.com/shreddedbacon/goweather
+CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=5 go build -a -o built-release-arm/goweather github.com/shreddedbacon/goweather
 
 VERSION=$(cat ${VERSION_FROM})
 echo ">> Create X86 artifact"
