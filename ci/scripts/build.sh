@@ -7,7 +7,8 @@ apk add --no-cache git
 apk add --no-cache --virtual .build-deps \
  		bash \
  		gcc \
-    musl-dev
+    musl-dev \
+    linux-headers
 
 # set up directory stuff for golang
 echo ">> Setup Directories"
