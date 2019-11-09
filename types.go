@@ -169,6 +169,7 @@ type CurrentData struct {
 	RainTotal       float64 `json:"rain_total"`
 	OutdoorTemp     float64 `json:"outdoor_temp"`
 	TimeStr         string  `json:"time_str"`
+	ApparentTemp    float64 `json:"apparent_temp"`
 }
 
 type FullData struct {
