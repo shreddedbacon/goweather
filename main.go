@@ -15,6 +15,7 @@ import (
 type Client interface {
 	Read(int, int) []byte
 	ReturnMainData([]byte) *WH1080Data
+	ReturnCurrentData([]byte, int) *CurrentData
 	CollectData() *FullData
 }
 
@@ -29,19 +30,13 @@ func New() (Client, error) {
 	return &Interface{
 		WH1080: wh1080,
 	}, err
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// fullData := CollectData(wh1080)
-	// jsonFullData, _ := json.Marshal(fullData)
-	// fmt.Println(string(jsonFullData))
 }
 
 func (gow *Interface) CollectData() *FullData {
 	serialBufferMain := gow.Read(0x00, 0x100)
 	mainData := gow.ReturnMainData(serialBufferMain)
 	serialBufferCurrent := gow.Read(mainData.State.CurrentPos, 0x20)
-	currentData := ReturnCurrentData(serialBufferCurrent, mainData.State.CurrentPos)
+	currentData := gow.ReturnCurrentData(serialBufferCurrent, mainData.State.CurrentPos)
 
 	fullData := &FullData{
 		CurrentData: *currentData,
@@ -233,7 +228,7 @@ func (gow *Interface) ReturnMainData(data []byte) *WH1080Data {
 }
 
 // Return CurrentData
-func ReturnCurrentData(data []byte, cursor int) *CurrentData {
+func (gow *Interface) ReturnCurrentData(data []byte, cursor int) *CurrentData {
 	retData := &CurrentData{
 		IndoorHumidity:  int(data[1]),
 		IndoorTemp:      toFixed(BytesToShort(data[3], data[2])*0.1, 1),
