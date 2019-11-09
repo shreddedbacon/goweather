@@ -1,4 +1,4 @@
-package main
+package goweather
 
 type State struct {
 	NoOfReadings     int     `json:"no_of_readings"`

@@ -1,33 +1,46 @@
-package main
+package goweather
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
-	//"strconv"
+
 	"math"
 	"time"
 
 	"github.com/karalabe/hid"
 )
 
-func main() {
-	usbDevice := hid.Enumerate(0x1941, 0x8021)
-	wh1080, err := usbDevice[0].Open()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fullData := CollectData(wh1080)
-	jsonFullData, _ := json.Marshal(fullData)
-	fmt.Println(string(jsonFullData))
+// Client struct
+type Client interface {
+	Read(int, int) []byte
+	ReturnMainData([]byte) *WH1080Data
+	CollectData() *FullData
 }
 
-func CollectData(wh1080 *hid.Device) *FullData {
-	serialBufferMain := Read(wh1080, 0x00, 0x100)
-	mainData := ReturnMainData(serialBufferMain)
-	serialBufferCurrent := Read(wh1080, mainData.State.CurrentPos, 0x20)
+// Interface struct
+type Interface struct {
+	WH1080 *hid.Device
+}
+
+func New() (Client, error) {
+	usbDevice := hid.Enumerate(0x1941, 0x8021)
+	wh1080, err := usbDevice[0].Open()
+	return &Interface{
+		WH1080: wh1080,
+	}, err
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// fullData := CollectData(wh1080)
+	// jsonFullData, _ := json.Marshal(fullData)
+	// fmt.Println(string(jsonFullData))
+}
+
+func (gow *Interface) CollectData() *FullData {
+	serialBufferMain := gow.Read(0x00, 0x100)
+	mainData := gow.ReturnMainData(serialBufferMain)
+	serialBufferCurrent := gow.Read(mainData.State.CurrentPos, 0x20)
 	currentData := ReturnCurrentData(serialBufferCurrent, mainData.State.CurrentPos)
 
 	fullData := &FullData{
@@ -37,7 +50,7 @@ func CollectData(wh1080 *hid.Device) *FullData {
 	return fullData
 }
 
-func Read(dev *hid.Device, address int, offset int) []byte {
+func (gow *Interface) Read(address int, offset int) []byte {
 	data, _ := hex.DecodeString("a1")
 	data2, _ := hex.DecodeString("20a1000020")
 	v1 := byte(address / 0x100)
@@ -50,14 +63,14 @@ func Read(dev *hid.Device, address int, offset int) []byte {
 	fulldata = append(fulldata, data2...)
 	chunks := offset / 32
 	for i := 0; i < chunks+1; i++ {
-		_, err := dev.Write(fulldata)
+		_, err := gow.WH1080.Write(fulldata)
 		if err != nil {
 			log.Fatalln(err)
 		}
 		for b := 0; b <= 3; b++ {
 			// we need to loop to get all the bytes from our write/read operation, for some reason we can't get all 32 bytes at once
 			buf := make([]byte, 8)
-			_, err := dev.Read(buf)
+			_, err := gow.WH1080.Read(buf)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -73,7 +86,7 @@ func Read(dev *hid.Device, address int, offset int) []byte {
 }
 
 // return maindata
-func ReturnMainData(data []byte) *WH1080Data {
+func (gow *Interface) ReturnMainData(data []byte) *WH1080Data {
 	retData := &WH1080Data{
 		State: State{
 			ReadPeriod:       int(data[16]),
@@ -142,16 +155,16 @@ func ReturnMainData(data []byte) *WH1080Data {
 		Alarm: Alarm{
 			IndoorHumidityHigh:   int(data[48]),
 			IndoorHumidityLow:    int(data[49]),
-			IndoorTempHigh:       toFixed(BytesToShort(data[51], data[50]) * 0.1, 1),
-			IndoorTempLow:        toFixed(BytesToShort(data[53], data[52]) * 0.1, 1),
+			IndoorTempHigh:       toFixed(BytesToShort(data[51], data[50])*0.1, 1),
+			IndoorTempLow:        toFixed(BytesToShort(data[53], data[52])*0.1, 1),
 			OutdoorHumidityHigh:  int(data[54]),
 			OutdoorHumidityLow:   int(data[55]),
-			OutdoorTempHigh:      toFixed(BytesToShort(data[57], data[56]) * 0.1, 1),
-			OutdoorTempLow:       toFixed(BytesToShort(data[59], data[58]) * 0.1, 1),
-			WindchillHigh:        toFixed(BytesToShort(data[61], data[60]) * 0.1, 1),
-			WindchillLow:         toFixed(BytesToShort(data[63], data[61]) * 0.1, 1),
-			DewpointHigh:         toFixed(BytesToShort(data[65], data[64]) * 0.1, 1),
-			DewpointLow:          toFixed(BytesToShort(data[67], data[66]) * 0.1, 1),
+			OutdoorTempHigh:      toFixed(BytesToShort(data[57], data[56])*0.1, 1),
+			OutdoorTempLow:       toFixed(BytesToShort(data[59], data[58])*0.1, 1),
+			WindchillHigh:        toFixed(BytesToShort(data[61], data[60])*0.1, 1),
+			WindchillLow:         toFixed(BytesToShort(data[63], data[61])*0.1, 1),
+			DewpointHigh:         toFixed(BytesToShort(data[65], data[64])*0.1, 1),
+			DewpointLow:          toFixed(BytesToShort(data[67], data[66])*0.1, 1),
 			AbsolutePressureHigh: toFixed(float64(uint(data[69])<<8|uint(data[68]))*0.1, 1),
 			AbsolutePressureLow:  toFixed(float64(uint(data[71])<<8|uint(data[70]))*0.1, 1),
 			RelativePressureHigh: toFixed(float64(uint(data[73])<<8|uint(data[72]))*0.1, 1),
@@ -170,14 +183,14 @@ func ReturnMainData(data []byte) *WH1080Data {
 			MinIndoorHumidity:      int(data[99]),
 			MaxOutdoorHumidity:     int(data[100]),
 			MinOutdoorHumidity:     int(data[101]),
-			MaxIndoorTemp:          toFixed(BytesToShort(data[103], data[102]) * 0.1, 1),
-			MinIndoorTemp:          toFixed(BytesToShort(data[105], data[104]) * 0.1, 1),
-			MaxOutdoorTemp:         toFixed(BytesToShort(data[107], data[106]) * 0.1, 1),
-			MinOutdoorTemp:         toFixed(BytesToShort(data[109], data[108]) * 0.1, 1),
-			MaxWindChill:           toFixed(BytesToShort(data[111], data[110]) * 0.1, 1),
-			MinWindChill:           toFixed(BytesToShort(data[113], data[112]) * 0.1, 1),
-			MaxDewPoint:            toFixed(BytesToShort(data[115], data[114]) * 0.1, 1),
-			MinDewPoint:            toFixed(BytesToShort(data[117], data[116]) * 0.1, 1),
+			MaxIndoorTemp:          toFixed(BytesToShort(data[103], data[102])*0.1, 1),
+			MinIndoorTemp:          toFixed(BytesToShort(data[105], data[104])*0.1, 1),
+			MaxOutdoorTemp:         toFixed(BytesToShort(data[107], data[106])*0.1, 1),
+			MinOutdoorTemp:         toFixed(BytesToShort(data[109], data[108])*0.1, 1),
+			MaxWindChill:           toFixed(BytesToShort(data[111], data[110])*0.1, 1),
+			MinWindChill:           toFixed(BytesToShort(data[113], data[112])*0.1, 1),
+			MaxDewPoint:            toFixed(BytesToShort(data[115], data[114])*0.1, 1),
+			MinDewPoint:            toFixed(BytesToShort(data[117], data[116])*0.1, 1),
 			MaxAbsPressure:         toFixed(float64(uint(data[119])<<8|uint(data[118]))*0.1, 1),
 			MinAbsPressure:         toFixed(float64(uint(data[121])<<8|uint(data[120]))*0.1, 1),
 			MaxRelPressure:         toFixed(float64(uint(data[123])<<8|uint(data[122]))*0.1, 1),
@@ -223,9 +236,9 @@ func ReturnMainData(data []byte) *WH1080Data {
 func ReturnCurrentData(data []byte, cursor int) *CurrentData {
 	retData := &CurrentData{
 		IndoorHumidity:  int(data[1]),
-		IndoorTemp:      toFixed(BytesToShort(data[3], data[2]) * 0.1, 1),
+		IndoorTemp:      toFixed(BytesToShort(data[3], data[2])*0.1, 1),
 		OutdoorHumidity: int(data[4]),
-		OutdoorTemp:     toFixed(BytesToShort(data[6], data[5]) * 0.1, 1),
+		OutdoorTemp:     toFixed(BytesToShort(data[6], data[5])*0.1, 1),
 		AbsPressure:     toFixed(float64(uint(data[8])<<8|uint(data[7]))*0.1, 1),
 		AveWindSpeed:    toFixed(float64(uint(data[11]&0x0F)<<8|uint(data[9]))*0.1, 1),
 		GustWindSpeed:   toFixed(float64(uint(data[11]&0xF0)<<8|uint(data[10]))*0.1, 1),
