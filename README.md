@@ -5,13 +5,38 @@ A way to read data from a USB weatherstation based on the FineOffset WH1080 or c
 This is meant to be used as a way to read data from the device and return something that can be used for other applications
 
 # Usage
+Use this to get data from a weather station, you need to make sure that you allow read access to the WH1080 device via USB by adding the following udev rule
 ```
-# get deps
-go get -v
-# build it
-go build -o goweather main.go types.go
-# run it
-./goweather
+# cat /etc/udev/rules.d/99-wh1080.rules 
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1941", ATTRS{idProduct}=="8021", MODE="0666"
+```
+## Example program
+```
+package main
+
+import (
+	"fmt"
+	"log"
+	"encoding/json"
+	weather "github.com/shreddedbacon/goweather"
+)
+
+func main() {
+	wh1080, err := weather.New() //open the usb connection and hold it here
+	if err != nil {
+		log.Fatalln(err)
+	}	
+	serialBufferMain := wh1080.Read(0x00, 0x100)
+	mainData := wh1080.ReturnMainData(serialBufferMain)
+	serialBufferCurrent := wh1080.Read(mainData.State.CurrentPos, 0x20)
+	currentData := wh1080.ReturnCurrentData(serialBufferCurrent, mainData.State.CurrentPos)
+	fullData := &weather.FullData{
+		CurrentData: *currentData,
+		WH1080Data:  *mainData,
+	}
+	jsonData, _ := json.Marshal(fullData)
+	fmt.Println(string(jsonData))
+}
 ```
 ## Output
 ```
